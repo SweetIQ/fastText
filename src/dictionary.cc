@@ -147,30 +147,33 @@ void Dictionary::initNgrams() {
   }
 }
 
-std::string Dictionary::readWord(std::ifstream& fin)
+bool Dictionary::readWord(std::ifstream& fin, std::string& word)
 {
   char c;
-  std::string word;
-  while (!fin.eof()) {
+  word.clear();
+  while (fin.peek() != EOF) {
     fin.get(c);
-    if (isspace(c)) {
+    if (isspace(c) || c == 0) {
       if (word.empty()) {
-        if (c == '\n') return EOS;
+        if (c == '\n') {
+          word += EOS;
+          return true;
+        }
         continue;
       } else {
         if (c == '\n') fin.unget();
-        return word;
+        return true;
       }
     }
     word.push_back(c);
   }
-  return word;
+  return !word.empty();
 }
 
 void Dictionary::readFromFile(std::ifstream& ifs) {
   std::string word;
   int64_t minThreshold = 1;
-  while (!(word = readWord(ifs)).empty()) {
+  while (readWord(ifs, word)) {
     add(word);
     if (ntokens_ % 1000000 == 0) {
       std::cout << "\rRead " << ntokens_  / 1000000 << "M words" << std::flush;
@@ -183,6 +186,8 @@ void Dictionary::readFromFile(std::ifstream& ifs) {
   threshold(args.minCount);
   initTableDiscard();
   initNgrams();
+  std::cout << "Number of words:  " << nwords_ << std::endl;
+  std::cout << "Number of labels: " << nlabels_ << std::endl;
 }
 
 void Dictionary::threshold(int64_t t) {
@@ -191,7 +196,7 @@ void Dictionary::threshold(int64_t t) {
       return e1.count > e2.count;
     });
   words_.erase(remove_if(words_.begin(), words_.end(), [&](const entry& e) {
-        return e.count < t;
+        return e.type == entry_type::word && e.count < t;
       }), words_.end());
   words_.shrink_to_fit();
   size_ = 0;
@@ -248,7 +253,7 @@ int32_t Dictionary::getLine(std::ifstream& ifs,
     ifs.clear();
     ifs.seekg(std::streampos(0));
   }
-  while (!(token = readWord(ifs)).empty()) {
+  while (readWord(ifs, token)) {
     if (token == EOS) break;
     int32_t wid = getId(token);
     if (wid < 0) continue;
