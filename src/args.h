@@ -10,6 +10,8 @@
 #ifndef FASTTEXT_ARGS_H
 #define FASTTEXT_ARGS_H
 
+#include <istream>
+#include <ostream>
 #include <string>
 
 enum class model_name : int {cbow=1, sg, sup};
@@ -37,11 +39,12 @@ class Args {
     int thread;
     double t;
     std::string label;
+    int verbose;
 
     void parseArgs(int, char**);
     void printHelp();
-    void save(std::ofstream&);
-    void load(std::ifstream&);
+    void save(std::ostream&);
+    void load(std::istream&);
 };
 
 #endif
